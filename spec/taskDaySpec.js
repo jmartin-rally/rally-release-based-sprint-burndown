@@ -36,4 +36,21 @@ describe("Task Day Model Tests", function(){
         model.addTo("TaskRemainingTotal",7);
         expect(model.get('TaskRemainingTotal')).toEqual(12);
     });
+    
+    it("should calculate a difference from ideal when ideal is above actual total", function() {
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 'TaskRemainingTotal': 5, 'IdealTaskRemainingTotal': 8 });
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(-3);
+    });
+    
+    it("should calculate a difference from ideal when ideal is below actual total", function() {
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 'TaskRemainingTotal': 5, 'IdealTaskRemainingTotal': 3 });
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(2);
+    });
+    
+    it("should calculate a difference from ideal when ideal is provided after creation", function() {
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 'TaskRemainingTotal': 5 });
+        model.addTo('IdealTaskRemainingTotal', 3);
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(2);
+    });
+
 });

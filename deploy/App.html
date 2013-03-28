@@ -30,13 +30,21 @@
                 return Rally.util.DateTime.toIsoString(initial_date,false).replace(/T.*$/,"");
              }
              
+             function calculateDelta(initial_value, record) {
+                var todo = record.get('TaskRemainingTotal');
+                var ideal = record.get('IdealTaskRemainingTotal');
+                
+                return todo - ideal;
+             }
+             
              Ext.define('Rally.pxs.data.TaskDay',{
                 extend: 'Ext.data.Model',
                 fields: [
                      { name: 'IsoDate', type: 'string', convert: makeIsoDate, defaultValue: new Date() },
                      { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
                      { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0 },
-                     { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 }
+                     { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 },
+                     { name: 'IdealTaskRemainingDelta', type: 'float', defaultValue: 0, convert: calculateDelta }
                 ],
                 addTo: function(field_name,additional_value) {
                     var field = this._getFieldByName(field_name);
@@ -53,6 +61,20 @@
                         }
                     });
                     return chosen_field;
+                },
+                set: function(fieldName, newValue) {
+                    var me = this;
+                    var changed_fields = this.callParent([fieldName, newValue]);
+                    if (changed_fields !== null) {
+                        if ( changed_fields.indexOf("IdealTaskRemainingTotal") > -1 || changed_fields.indexOf("TaskRemainingTotal") > -1 ){
+                            var todo = me.get('TaskRemainingTotal');
+                            var ideal = me.get('IdealTaskRemainingTotal');
+                            
+                            me.set('IdealTaskRemainingDelta',todo - ideal);
+                            changed_fields.push('IdealTaskRemainingDelta');
+                        }
+                    }
+                    return changed_fields;
                 }
             
             });            Ext.define('CustomApp', {
@@ -218,17 +240,19 @@
                         height: 400,
                         store: chart_store,
                         series: [
+                            {type: 'column',dataIndex:'IdealTaskRemainingDelta',name:'Remaining to Required', visible: true},
                             {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
                             {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
                         ],
                         chartConfig: {
                             chart: {},
+                            colors: ['#fc3','#000','#00f'],
                             title: { text: 'my chart', align: 'center' },
                             xAxis: [{
-                                title: { text: "x"},
+                                title: { text: ""},
                                 categories: this._getDateArray(this.iteration_start, this.iteration_end, true)
                             }],
-                            yAxis: [{title: { text: ""}, min: 0}]
+                            yAxis: [{title: { text: ""}}]
                         }
                     });
                     this.down('#chart_box').add(this.chart);

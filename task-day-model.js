@@ -19,13 +19,21 @@ function makeIsoDate(initial_date,record) {
     return Rally.util.DateTime.toIsoString(initial_date,false).replace(/T.*$/,"");
  }
  
+ function calculateDelta(initial_value, record) {
+    var todo = record.get('TaskRemainingTotal');
+    var ideal = record.get('IdealTaskRemainingTotal');
+    
+    return todo - ideal;
+ }
+ 
  Ext.define('Rally.pxs.data.TaskDay',{
     extend: 'Ext.data.Model',
     fields: [
          { name: 'IsoDate', type: 'string', convert: makeIsoDate, defaultValue: new Date() },
          { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
          { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0 },
-         { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 }
+         { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 },
+         { name: 'IdealTaskRemainingDelta', type: 'float', defaultValue: 0, convert: calculateDelta }
     ],
     addTo: function(field_name,additional_value) {
         var field = this._getFieldByName(field_name);
@@ -42,6 +50,20 @@ function makeIsoDate(initial_date,record) {
             }
         });
         return chosen_field;
+    },
+    set: function(fieldName, newValue) {
+        var me = this;
+        var changed_fields = this.callParent([fieldName, newValue]);
+        if (changed_fields !== null) {
+            if ( changed_fields.indexOf("IdealTaskRemainingTotal") > -1 || changed_fields.indexOf("TaskRemainingTotal") > -1 ){
+                var todo = me.get('TaskRemainingTotal');
+                var ideal = me.get('IdealTaskRemainingTotal');
+                
+                me.set('IdealTaskRemainingDelta',todo - ideal);
+                changed_fields.push('IdealTaskRemainingDelta');
+            }
+        }
+        return changed_fields;
     }
 
 });

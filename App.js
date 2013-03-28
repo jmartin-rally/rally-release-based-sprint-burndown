@@ -161,17 +161,19 @@ Ext.define('CustomApp', {
             height: 400,
             store: chart_store,
             series: [
+                {type: 'column',dataIndex:'IdealTaskRemainingDelta',name:'Remaining to Required', visible: true},
                 {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
                 {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
             ],
             chartConfig: {
                 chart: {},
+                colors: ['#fc3','#000','#00f'],
                 title: { text: 'my chart', align: 'center' },
                 xAxis: [{
-                    title: { text: "x"},
+                    title: { text: ""},
                     categories: this._getDateArray(this.iteration_start, this.iteration_end, true)
                 }],
-                yAxis: [{title: { text: ""}, min: 0}]
+                yAxis: [{title: { text: ""}}]
             }
         });
         this.down('#chart_box').add(this.chart);
