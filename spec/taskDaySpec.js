@@ -10,6 +10,7 @@ describe("Task Day Model Tests", function(){
         expect(model.get('IsoDate')).toMatch(new RegExp(today_iso_string)); // off by second 
         expect(model.get('ShortIsoDate')).toEqual(today_iso_string);
         expect(model.get('TaskRemainingTotal')).toEqual(0);
+        expect(model.get('IdealTaskRemainingTotal')).toEqual(0);
     });
     
     it("should return an iso date string when given an iso date string", function(){

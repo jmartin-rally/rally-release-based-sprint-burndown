@@ -24,7 +24,8 @@ function makeIsoDate(initial_date,record) {
     fields: [
          { name: 'IsoDate', type: 'string', convert: makeIsoDate, defaultValue: new Date() },
          { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
-         { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0 }
+         { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0 },
+         { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 }
     ],
     addTo: function(field_name,additional_value) {
         var field = this._getFieldByName(field_name);
