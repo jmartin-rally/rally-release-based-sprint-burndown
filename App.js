@@ -14,6 +14,7 @@ Ext.define('CustomApp', {
         this._addTimeboxSelectors();
     },
     _addTimeboxSelectors: function() {
+        var first_time = true;
         this.down('#selector_box').add({
             xtype: 'rallyreleasecombobox',
             itemId: 'release_box',
@@ -25,6 +26,24 @@ Ext.define('CustomApp', {
                     this._gatherData();
                 },
                 scope: this
+            },
+            storeConfig: {
+                listeners: {
+                    load: function(store) {
+                        console.log( "onload" );
+                        if ( first_time ) {
+                            store.loadData([{formattedName: '--ANY--',
+                                            formattedStartDate: 'n/a',
+                                            formattedEndDate: 'n/a',
+                                            Name: '--ANY--',
+                                            isSelected: false}],
+                                            true);
+                            store.sort('formattedStartDate', 'DESC');
+                            first_time = false;
+                        }
+
+                     }
+                }
             }
         });
         this.down('#selector_box').add({
@@ -115,9 +134,11 @@ Ext.define('CustomApp', {
             {property:'_TypeHierarchy',operator:'in',value:['Defect','HierarchicalRequirement','TestSet']},
             {property:'_ProjectHierarchy',operator:'=',value: this.getContext().getProject().ObjectID},
             {property:'__At',value:midnight},
-            {property:'Iteration',operator:'in',value:this.iteration_oids},
-            {property:'Release',operator:'in',value:this.release_oids}
+            {property:'Iteration',operator:'in',value:this.iteration_oids}
         ];
+        if ( this.release_oids.length > 0 ) {
+            query.push({property:'Release',operator:'in',value:this.release_oids});
+        }
         Ext.create('Rally.data.lookback.SnapshotStore',{
             autoLoad: true,
             fetch: ['TaskRemainingTotal','Iteration','_UnformattedID'],
@@ -157,6 +178,7 @@ Ext.define('CustomApp', {
                 }
             }
         });
+        if(this.chart){ this.chart.destroy(); }
         this.chart = Ext.create('Rally.ui.chart.Chart',{
             height: 400,
             store: chart_store,

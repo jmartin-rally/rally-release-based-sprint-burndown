@@ -64,7 +64,6 @@ function makeIsoDate(initial_date,record) {
     set: function(fieldName, newValue) {
         var me = this;
         var changed_fields = this.callParent([fieldName, newValue]);
-        console.log( changed_fields, fieldName, newValue );
         if (changed_fields !== null) {
             if ( changed_fields.indexOf("IdealTaskRemainingTotal") > -1 || changed_fields.indexOf("TaskRemainingTotal") > -1 ){
                 if ( ! me.get('Future') ) {
