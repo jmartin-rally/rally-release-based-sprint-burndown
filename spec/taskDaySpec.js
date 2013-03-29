@@ -53,4 +53,30 @@ describe("Task Day Model Tests", function(){
         expect(model.get('IdealTaskRemainingDelta')).toEqual(2);
     });
 
+    it("should make nulls for some of the data when item is in Future", function(){
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 
+            'IdealTaskRemainingDelta': -5, 
+            'IdealTaskRemainingTotal': 10,
+            'TaskRemainingTotal': 5 
+        });
+
+        model.set('Future',true);
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(null);
+        expect(model.get('TaskRemainingTotal')).toEqual(null);
+        expect(model.get('IdealTaskRemainingTotal')).toEqual(10);
+    });
+    
+    it("should make nulls for when item is in Future and fields change", function(){
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 
+            'IdealTaskRemainingDelta': -5, 
+            'IdealTaskRemainingTotal': 10,
+            'TaskRemainingTotal': 5 
+        });
+
+        model.set('Future',true);
+        model.set('TaskRemainingTotal',12);
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(null);
+        expect(model.get('TaskRemainingTotal')).toEqual(null);
+        expect(model.get('IdealTaskRemainingTotal')).toEqual(10);
+    });
 });

@@ -195,12 +195,19 @@ Ext.define('CustomApp', {
     },
     _hashToArray: function(hash) {
         var the_array = [];
+        var today = Rally.util.DateTime.toIsoString(new Date(),false).replace(/T.*$/,"");
         for (var key in hash ) {
             if (hash.hasOwnProperty(key)){
+                console.log( key, today );
+                var day_snap = hash[key];
+                if ( key > today ) {
+                    day_snap.set('Future',true);
+                }
                 // not sure why the model can't be pushed straight into the store
                 the_array.push(hash[key].getData());
             }
         }
+
         return the_array;
     }
 });
