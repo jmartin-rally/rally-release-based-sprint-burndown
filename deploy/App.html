@@ -96,7 +96,7 @@
             });            Ext.define('CustomApp', {
                 extend: 'Rally.app.App',
                 componentCls: 'app',
-                version: "0.1",
+                version: "0.2",
                 defaults: { margin: 5 },
                 items: [ 
                     {xtype: 'container', itemId: 'selector_box', layout: { type: 'hbox' } },
@@ -125,7 +125,6 @@
                         storeConfig: {
                             listeners: {
                                 load: function(store) {
-                                    console.log( "onload" );
                                     if ( first_time ) {
                                         store.loadData([{formattedName: '--ANY--',
                                                         formattedStartDate: 'n/a',
@@ -278,19 +277,24 @@
                         height: 400,
                         store: chart_store,
                         series: [
-                            {type: 'column',dataIndex:'IdealTaskRemainingDelta',name:'Remaining to Required', visible: true},
+                            {type: 'column',dataIndex:'IdealTaskRemainingDelta',name:'Remaining to Required', visible: true, dataLabels:{
+                                enabled: true
+                            }},
                             {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
                             {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
                         ],
                         chartConfig: {
                             chart: {},
                             colors: ['#fc3','#000','#00f'],
-                            title: { text: 'my chart', align: 'center' },
-                            xAxis: [{
+                            title: { text: 'Release Based Iteration Burn Down', align: 'center' },
+                            xAxis: {
                                 title: { text: ""},
                                 categories: this._getDateArray(this.iteration_start, this.iteration_end, true)
-                            }],
-                            yAxis: [{title: { text: ""}}]
+                            },
+                            yAxis: [{
+                                title: { text: ""},
+                                plotLines: [{color:'#000',width: 2, value: 0}]
+                            }]
                         }
                     });
                     this.down('#chart_box').add(this.chart);
@@ -315,7 +319,6 @@
                     var today = Rally.util.DateTime.toIsoString(new Date(),false).replace(/T.*$/,"");
                     for (var key in hash ) {
                         if (hash.hasOwnProperty(key)){
-                            console.log( key, today );
                             var day_snap = hash[key];
                             if ( key > today ) {
                                 day_snap.set('Future',true);
