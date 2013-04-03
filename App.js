@@ -199,7 +199,8 @@ Ext.define('CustomApp', {
                 yAxis: [{
                     title: { text: ""},
                     plotLines: [{color:'#000',width: 2, value: 0}]
-                }]
+                }],
+                exporting: { enabled: true }
             }
         });
         this.down('#chart_box').add(this.chart);

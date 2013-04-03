@@ -65,7 +65,7 @@ function makeIsoDate(initial_date,record) {
         var me = this;
         var changed_fields = this.callParent([fieldName, newValue]);
         if (changed_fields !== null) {
-            if ( changed_fields.indexOf("IdealTaskRemainingTotal") > -1 || changed_fields.indexOf("TaskRemainingTotal") > -1 ){
+            if ( Ext.Array.indexOf(changed_fields,"IdealTaskRemainingTotal") > -1 || Ext.Array.indexOf(changed_fields,"TaskRemainingTotal") > -1 ){
                 if ( ! me.get('Future') ) {
                     var todo = me.get('TaskRemainingTotal');
                     var ideal = me.get('IdealTaskRemainingTotal');
@@ -74,7 +74,7 @@ function makeIsoDate(initial_date,record) {
                     changed_fields.push('IdealTaskRemainingDelta');
                 }
             }
-            if ( changed_fields.indexOf('Future') > -1 && me.get('Future') ) {
+            if ( Ext.Array.indexOf(changed_fields,'Future') > -1 && me.get('Future') ) {
                 me.set('TaskRemainingTotal',null);
                 me.set('IdealTaskRemainingDelta',null);
             }
