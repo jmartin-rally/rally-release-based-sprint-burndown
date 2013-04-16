@@ -9,6 +9,10 @@
         Rally.onReady(function() {
             var copyright_notice = "This software is provided as an example for demonstration of functionality only, " +
                     "without guarantee, support or warranty. (c) 2013 Rally Software";
+             function limitDecimals(initial_value) {
+                return parseInt( 10*initial_value, 10 ) / 10;
+             }
+            
             function makeIsoDate(initial_date,record) {
                 //window.console && console.log( initial_date, typeof(initial_date));
                 if ( typeof(initial_date) === "string" ) {
@@ -35,7 +39,7 @@
                 var todo = record.get('TaskRemainingTotal');
                 var ideal = record.get('IdealTaskRemainingTotal');
                 
-                return todo - ideal;
+                return limitDecimals(todo - ideal);
              }
              
              function checkFuture(initial_value,record) {
@@ -52,7 +56,7 @@
                      { name: 'IsoDate', type: 'string', convert: makeIsoDate, defaultValue: new Date() },
                      { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
                      { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0, convert: checkFuture },
-                     { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 },
+                     { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0, convert: limitDecimals },
                      { name: 'IdealTaskRemainingDelta', type: 'float', defaultValue: 0, convert: calculateDelta },
                      { name: 'Future', type: 'boolean', defaultValue: false }
                 ],
@@ -92,7 +96,6 @@
                     }
                     return changed_fields;
                 }
-            
             });            Ext.define('CustomApp', {
                 extend: 'Rally.app.App',
                 componentCls: 'app',
