@@ -108,19 +108,44 @@
                 iteration_start: null,
                 iteration_end: null,
                 number_of_days_in_iteration: 0,
+                applied_state: null,
                 launch: function() {
                     this._addTimeboxSelectors();
                 },
                 _addTimeboxSelectors: function() {
                     var first_time = true;
+                    var me = this;
                     this.down('#selector_box').add({
                         xtype: 'rallyreleasecombobox',
                         itemId: 'release_box',
+                        stateId: 'pxs.burndown.release',
+                        stateful: true,
+                        stateEvents: ['change'],
+                        getState: function() {
+                            window.console && console.log( ".......saving state", this.getRawValue() );
+                            return { value: this.getRawValue() };
+                        },
+                        applyState: function(state) {
+                            window.console && console.log(".......applying state", state);
+                            if ( state && state.value ) {
+                                me.applied_state = state.value;
+                                //this.setRawValue(state.value);
+                            }
+                        },
                         listeners: {
                             change: function() {
                                 this._gatherData();
                             },
-                            ready: function() {
+                            ready: function(cb) {
+                                window.console && console.log( ".......release ready", this.applied_state );
+                                // applyState (above) seems to work before the data is loaded
+                                if (this.applied_state) {
+                                    window.console && console.log(".......re-applying state", this.applied_state);
+                                    var same_release = cb.findRecordByDisplay(this.applied_state);
+                                    if ( same_release ) {
+                                        cb.setValue(same_release);
+                                    }
+                                }
                                 this._gatherData();
                             },
                             scope: this
@@ -138,7 +163,7 @@
                                         store.sort('formattedStartDate', 'DESC');
                                         first_time = false;
                                     }
-            
+                                    
                                  }
                             }
                         }
@@ -172,6 +197,7 @@
                     return date_array;
                 },
                 _gatherData: function() {
+                    window.console && console.log("_gatherData:",this.down('#release_box').getRecord());
                     if(this.chart){ this.chart.destroy(); }
                     if ( this.down('#release_box').getRecord() && this.down('#iteration_box').getRecord() ) {
                         var selected_release = this.down('#release_box').getRecord();
