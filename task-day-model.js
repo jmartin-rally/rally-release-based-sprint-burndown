@@ -1,3 +1,7 @@
+ function limitDecimals(initial_value) {
+    return parseInt( 10*initial_value, 10 ) / 10;
+ }
+
 function makeIsoDate(initial_date,record) {
     //window.console && console.log( initial_date, typeof(initial_date));
     if ( typeof(initial_date) === "string" ) {
@@ -24,7 +28,7 @@ function makeIsoDate(initial_date,record) {
     var todo = record.get('TaskRemainingTotal');
     var ideal = record.get('IdealTaskRemainingTotal');
     
-    return todo - ideal;
+    return limitDecimals(todo - ideal);
  }
  
  function checkFuture(initial_value,record) {
@@ -41,7 +45,7 @@ function makeIsoDate(initial_date,record) {
          { name: 'IsoDate', type: 'string', convert: makeIsoDate, defaultValue: new Date() },
          { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
          { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0, convert: checkFuture },
-         { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0 },
+         { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0, convert: limitDecimals },
          { name: 'IdealTaskRemainingDelta', type: 'float', defaultValue: 0, convert: calculateDelta },
          { name: 'Future', type: 'boolean', defaultValue: false }
     ],
@@ -81,5 +85,4 @@ function makeIsoDate(initial_date,record) {
         }
         return changed_fields;
     }
-
 });

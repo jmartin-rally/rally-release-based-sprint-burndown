@@ -79,4 +79,15 @@ describe("Task Day Model Tests", function(){
         expect(model.get('TaskRemainingTotal')).toEqual(null);
         expect(model.get('IdealTaskRemainingTotal')).toEqual(10);
     });
-});
+    
+    it("should limit decimal places displayed", function(){
+        var model = Ext.create('Rally.pxs.data.TaskDay', { 
+            'IdealTaskRemainingDelta': -4.666666666, 
+            'IdealTaskRemainingTotal': 5.333333333333333,
+            'TaskRemainingTotal': 10
+        });
+
+        expect(model.get('IdealTaskRemainingDelta')).toEqual(4.7);
+        expect(model.get('TaskRemainingTotal')).toEqual(10);
+        expect(model.get('IdealTaskRemainingTotal')).toEqual(5.3);
+    });});
