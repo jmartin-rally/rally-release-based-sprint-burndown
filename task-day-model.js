@@ -46,6 +46,7 @@ function makeIsoDate(initial_date,record) {
          { name: 'ShortIsoDate', type: 'string', convert: makeShorterIsoDate, defaultValue: null },
          { name: 'TaskRemainingTotal', type: 'float', defaultValue: 0, convert: checkFuture },
          { name: 'IdealTaskRemainingTotal', type: 'float', defaultValue: 0, convert: limitDecimals },
+         { name: 'IdealTaskRemainingPercent', type: 'float', defaultValue: 0, convert: limitDecimals },
          { name: 'IdealTaskRemainingDelta', type: 'float', defaultValue: 0, convert: calculateDelta },
          { name: 'Future', type: 'boolean', defaultValue: false }
     ],

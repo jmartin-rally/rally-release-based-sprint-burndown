@@ -1,7 +1,15 @@
-Ext.define('CustomApp', {
+/*
+ * Displays a burndown chart.  
+ * 
+ * Change show_teams to true to show broken down by teams with normalized burndown
+ * Change show_teams to false to show aggregated
+ * 
+ */
+ Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    version: "0.3",
+    version: "0.4",
+    show_teams: true,
     defaults: { margin: 5 },
     items: [ 
         {xtype: 'container', itemId: 'selector_box', layout: { type: 'hbox' } },
@@ -24,11 +32,9 @@ Ext.define('CustomApp', {
             stateful: true,
             stateEvents: ['change'],
             getState: function() {
-                window.console && console.log( ".......saving state", this.getRawValue() );
                 return { value: this.getRawValue() };
             },
             applyState: function(state) {
-                window.console && console.log(".......applying state", state);
                 if ( state && state.value ) {
                     me.applied_state = state.value;
                     //this.setRawValue(state.value);
@@ -39,10 +45,8 @@ Ext.define('CustomApp', {
                     this._gatherData();
                 },
                 ready: function(cb) {
-                    window.console && console.log( ".......release ready", this.applied_state );
                     // applyState (above) seems to work before the data is loaded
                     if (this.applied_state) {
-                        window.console && console.log(".......re-applying state", this.applied_state);
                         var same_release = cb.findRecordByDisplay(this.applied_state);
                         if ( same_release ) {
                             cb.setValue(same_release);
@@ -106,7 +110,6 @@ Ext.define('CustomApp', {
             var selected_iteration = this.down('#iteration_box').getRecord();
             this.release_name = selected_release.get('Name');
             this.iteration_name = selected_iteration.get('Name');
-            window.console && console.log("Release:", this.release_name, "Iteration:",this.iteration_name);
             this.iteration_start = selected_iteration.get('StartDate');
             this.iteration_end = selected_iteration.get('EndDate');
             this._getIterations();
@@ -115,13 +118,18 @@ Ext.define('CustomApp', {
     _getIterations: function() {
         var me = this;
         this.iteration_oids = [];
+        this.team_names = {}; // key is team objectid
+        this.team_data = {}; // key will be team objectid
         Ext.create('Rally.data.WsapiDataStore',{
             model: 'Iteration',
             autoLoad: true,
             filters: { property: 'Name', value: me.iteration_name },
+            fetch:['EndDate','StartDate','Project','Name','ObjectID'],
             listeners: {
                 load: function(store,data,success) {
                     Ext.Array.each(data,function(item){
+                        me.team_names[item.get('Project').ObjectID] = item.get('Project').Name;
+                        me.team_data[item.get('Project').ObjectID] = {};
                         me.iteration_oids.push(item.get('ObjectID'));
                     });
                     me._getReleases();
@@ -130,6 +138,7 @@ Ext.define('CustomApp', {
         });
     },
     _getReleases: function() {
+        window.console && console.log( "_getReleases" );
         var me = this;
         this.release_oids = [];
         Ext.create('Rally.data.WsapiDataStore',{
@@ -147,6 +156,7 @@ Ext.define('CustomApp', {
         });
     },
     _getSnapshots: function() {
+        window.console && console.log( "_getSnapshots" );
         var date_array = this._getDateArray(this.iteration_start, this.iteration_end);
         this.number_of_days_in_iteration = date_array.length;
         this.task_days = {};
@@ -171,11 +181,18 @@ Ext.define('CustomApp', {
             listeners: {
                 load: function(store,data,success) {
                     window.console && console.log("load",midnight,data);
+                    var me = this;
                     var task_day = Ext.create('Rally.pxs.data.TaskDay',{IsoDate:midnight});
+                    var short_date = task_day.get('ShortIsoDate');
                     Ext.Array.each(data,function(snap) {
                         task_day.addTo("TaskRemainingTotal",snap.get('TaskRemainingTotal'));
+                        var project_oid = snap.get('Project');
+                        if ( ! me.team_data[project_oid][short_date]){
+                            me.team_data[project_oid][short_date] = Ext.create('Rally.pxs.data.TaskDay',{IsoDate:midnight});
+                        }
+                        me.team_data[project_oid][short_date].addTo("TaskRemainingTotal",snap.get('TaskRemainingTotal'));
                     });
-                    this.task_days[task_day.get('ShortIsoDate')] = task_day;
+                    this.task_days[short_date] = task_day;
                     
                     if ( date_array.length > 0 ) {
                         this._getEndOfOneDaySnaps(date_array);
@@ -188,12 +205,62 @@ Ext.define('CustomApp', {
         });
     },
     _report: function() {
-        window.console && console.log("_report",this.task_days);
+        window.console && console.log("_report, show_teams:", this.show_teams, "; team_data:", this.team_data);
         this._setIdeals();
+
+        if ( this.show_teams ) { 
+            this._showSegregatedChart();
+        } else {
+            this._showCombinedChart();
+        }
+    },
+    /* chart with "normalized" burndown for each Rally project in scope. */
+    _showSegregatedChart: function() {
+        window.console && console.log("_showSegregatedChart");
+        this._normalizeTeamData();
+        console.log(this.task_days);
+        var data_array = this._hashToArray(this.task_days);
+        console.log( "Data array", data_array );
         
+        var chart_store = Ext.create('Rally.data.custom.Store',{
+            autoLoad: true,
+            data: data_array
+        });
+        if(this.chart){ this.chart.destroy(); }
+        var series = [];
+        series.push({type: 'line', dataIndex: 'IdealTaskRemainingPercent', name: 'Work Required', visible: true});
+        for ( var team_id in this.team_names ) {
+            if ( this.team_names.hasOwnProperty(team_id) ){
+                series.push({type: 'line', dataIndex: this.team_names[team_id], name: this.team_names[team_id], visible: true});
+            }
+        }
+        this.chart = Ext.create('Rally.ui.chart.Chart',{
+            height: 400,
+            store: chart_store,
+            series: series,
+            chartConfig: {
+                chart: {},
+                colors: ['#000','#00f'],
+                title: { text: 'Normalized Iteration Burn Down', align: 'center' },
+                xAxis: {
+                    title: { text: ""},
+                    categories: this._getDateArray(this.iteration_start, this.iteration_end, true)
+                },
+                yAxis: [{
+                    title: { text: ""},
+                    plotLines: [{color:'#000',width: 2, value: 0}]
+                }],
+                exporting: { enabled: true }
+            }
+        });
+        this.down('#chart_box').add(this.chart);
+    },
+    _showCombinedChart: function() {
+        window.console && console.log("_showCombinedChart",this.task_days);
+        var data_array = this._hashToArray(this.task_days);
         var chart_store = Ext.create('Ext.data.Store',{
             autoLoad: true,
-            data: {data:this._hashToArray(this.task_days)},
+            data: {data:data_array},
             model: 'Rally.pxs.data.TaskDay',
             proxy: {
                 type: 'memory',
@@ -212,7 +279,8 @@ Ext.define('CustomApp', {
                     enabled: true
                 }},
                 {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
-                {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
+                {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true},
+                {type: 'column',dataIndex: 'fred',name:'Fred',visible:true}
             ],
             chartConfig: {
                 chart: {},
@@ -236,13 +304,17 @@ Ext.define('CustomApp', {
         
         var ideal_top = this.task_days[start_iso].get('TaskRemainingTotal');
         var ideal_drop = ideal_top/(this.number_of_days_in_iteration-1);
+        var ideal_drop_percent = 100/(this.number_of_days_in_iteration-1);
         
         // ASSUMES that the hash is in date order.  TODO: CHALLENGE this assumption
         var daily_ideal = ideal_top;
+        var daily_ideal_percent = 100;
         for (var day in this.task_days ) {
             if (this.task_days.hasOwnProperty(day)){
                 this.task_days[day].set('IdealTaskRemainingTotal',daily_ideal);
+                this.task_days[day].set('IdealTaskRemainingPercent',daily_ideal_percent);
                 daily_ideal = daily_ideal - ideal_drop;
+                daily_ideal_percent = daily_ideal_percent - ideal_drop_percent;
             }
         }
     },
@@ -256,10 +328,42 @@ Ext.define('CustomApp', {
                     day_snap.set('Future',true);
                 }
                 // not sure why the model can't be pushed straight into the store
-                the_array.push(hash[key].getData());
+                //the_array.push(hash[key].getData());
+                the_array.push(hash[key].data);
             }
         }
 
         return the_array;
+    },
+    _normalizeTeamData: function() {
+        window.console && console.log("_normalizeTeamData",this.task_days);
+        var me = this;
+        var start_iso = Rally.util.DateTime.toIsoString(this.iteration_start,false).replace(/T.*$/,"");
+        var today = Rally.util.DateTime.toIsoString(new Date(),false).replace(/T.*$/,"");
+        
+        for ( var team_id in this.team_data ) {
+            if ( this.team_data.hasOwnProperty(team_id) ) {
+                var team_name = this.team_names[team_id];
+                var data_array = this._hashToArray(this.team_data[team_id]);
+                if ( data_array.length > 0 &&  this.team_data[team_id][start_iso]) {
+                    var team_top = this.team_data[team_id][start_iso].get('TaskRemainingTotal');
+                    
+                    Ext.Array.each( data_array, function(team_one_day){
+                        var midnight = team_one_day.ShortIsoDate;
+                        var percentage = ( parseInt( 1000 * team_one_day.TaskRemainingTotal/team_top ) / 10 );
+                        if ( isNaN(percentage) || midnight > today ) { 
+                            percentage = null; 
+                        }
+                        console.log("..",midnight,percentage);
+                        //me.task_days[midnight].set(team_name, team_one_day.TaskRemainingTotal);
+                        me.task_days[midnight].set(team_name,percentage);
+                    });
+                }
+            }
+        }
+        return this._hashToArray(this.task_days);
+    },
+    _limitDecimals: function(initial_value) {
+        return parseInt( 10*initial_value, 10 ) / 10;
     }
 });
