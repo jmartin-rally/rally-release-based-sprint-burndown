@@ -9,7 +9,7 @@
     extend: 'Rally.app.App',
     componentCls: 'app',
     version: "0.4",
-    show_teams: true,
+    show_teams: false,
     defaults: { margin: 5 },
     items: [ 
         {xtype: 'container', itemId: 'selector_box', layout: { type: 'hbox' } },
@@ -106,14 +106,18 @@
         window.console && console.log("_gatherData:",this.down('#release_box').getRecord());
         if(this.chart){ this.chart.destroy(); }
         if ( this.down('#release_box').getRecord() && this.down('#iteration_box').getRecord() ) {
+            window.console && console.log("SPRINT:",this.down('#iteration_box').getRecord());
             var selected_release = this.down('#release_box').getRecord();
             var selected_iteration = this.down('#iteration_box').getRecord();
             this.release_name = selected_release.get('Name');
             this.iteration_name = selected_iteration.get('Name');
-            this.iteration_start = selected_iteration.get('StartDate');
-            this.iteration_end = selected_iteration.get('EndDate');
+            this.iteration_start = this._normalizeDate( selected_iteration.get('StartDate') );
+            this.iteration_end = this._normalizeDate( selected_iteration.get('EndDate') );
             this._getIterations();
         }
+    },
+    _normalizeDate: function(jsdate){
+        return Rally.util.DateTime.fromIsoString(Rally.util.DateTime.toIsoString(jsdate,true));
     },
     _getIterations: function() {
         var me = this;
@@ -218,9 +222,7 @@
     _showSegregatedChart: function() {
         window.console && console.log("_showSegregatedChart");
         this._normalizeTeamData();
-        console.log(this.task_days);
         var data_array = this._hashToArray(this.task_days);
-        console.log( "Data array", data_array );
         
         var chart_store = Ext.create('Rally.data.custom.Store',{
             autoLoad: true,
@@ -300,8 +302,9 @@
         this.down('#chart_box').add(this.chart);
     },
     _setIdeals: function(){
-        var start_iso = Rally.util.DateTime.toIsoString(this.iteration_start,false).replace(/T.*$/,"");
-        
+        var date_array = this._getDateArray(this.iteration_start, this.iteration_end);
+        var start_iso = Rally.util.DateTime.toIsoString(date_array[0],true).replace(/T.*$/,"");
+        window.console && console.log( "Set Ideal for First Day:",start_iso);
         var ideal_top = this.task_days[start_iso].get('TaskRemainingTotal');
         var ideal_drop = ideal_top/(this.number_of_days_in_iteration-1);
         var ideal_drop_percent = 100/(this.number_of_days_in_iteration-1);
@@ -338,7 +341,8 @@
     _normalizeTeamData: function() {
         window.console && console.log("_normalizeTeamData",this.task_days);
         var me = this;
-        var start_iso = Rally.util.DateTime.toIsoString(this.iteration_start,false).replace(/T.*$/,"");
+        var date_array = this._getDateArray(this.iteration_start, this.iteration_end);
+        var start_iso = Rally.util.DateTime.toIsoString(date_array[0],true).replace(/T.*$/,"");
         var today = Rally.util.DateTime.toIsoString(new Date(),false).replace(/T.*$/,"");
         
         for ( var team_id in this.team_data ) {
@@ -354,7 +358,7 @@
                         if ( isNaN(percentage) || midnight > today ) { 
                             percentage = null; 
                         }
-                        console.log("..",midnight,percentage);
+                        window.console && console.log("..",midnight,percentage);
                         //me.task_days[midnight].set(team_name, team_one_day.TaskRemainingTotal);
                         me.task_days[midnight].set(team_name,percentage);
                     });
