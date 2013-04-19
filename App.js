@@ -4,16 +4,19 @@
  * Change show_teams to true to show broken down by teams with normalized burndown
  * Change show_teams to false to show aggregated
  * 
+ * The normalization is: percentage of task remaining / highest task estimate day
+ * 
  */
  Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    version: "0.4",
-    show_teams: false,
+    version: "0.6",
+    show_teams: true,
     defaults: { margin: 5 },
     items: [ 
         {xtype: 'container', itemId: 'selector_box', layout: { type: 'hbox' } },
-        {xtype: 'container', itemId: 'chart_box'}
+        {xtype: 'container', itemId: 'chart_box'},
+        {xtype: 'container', itemId: 'notes_box', html: 'This chart calculates "work required" based on the highest set of estimates on day 1 or day 2' }
     ],
     iteration_start: null,
     iteration_end: null,
@@ -180,7 +183,7 @@
         }
         Ext.create('Rally.data.lookback.SnapshotStore',{
             autoLoad: true,
-            fetch: ['TaskRemainingTotal','Iteration','_UnformattedID'],
+            fetch: ['TaskRemainingTotal','Iteration','_UnformattedID','TaskEstimateTotal'],
             filters: query,
             listeners: {
                 load: function(store,data,success) {
@@ -190,11 +193,13 @@
                     var short_date = task_day.get('ShortIsoDate');
                     Ext.Array.each(data,function(snap) {
                         task_day.addTo("TaskRemainingTotal",snap.get('TaskRemainingTotal'));
+                        task_day.addTo("TaskEstimateTotal",snap.get('TaskEstimateTotal'));
                         var project_oid = snap.get('Project');
                         if ( ! me.team_data[project_oid][short_date]){
                             me.team_data[project_oid][short_date] = Ext.create('Rally.pxs.data.TaskDay',{IsoDate:midnight});
                         }
                         me.team_data[project_oid][short_date].addTo("TaskRemainingTotal",snap.get('TaskRemainingTotal'));
+                        me.team_data[project_oid][short_date].addTo("TaskEstimateTotal",snap.get('TaskEstimateTotal'));
                     });
                     this.task_days[short_date] = task_day;
                     
@@ -236,6 +241,7 @@
                 series.push({type: 'line', dataIndex: this.team_names[team_id], name: this.team_names[team_id], visible: true});
             }
         }
+        window.console && console.log( "Series:",series );
         this.chart = Ext.create('Rally.ui.chart.Chart',{
             height: 400,
             store: chart_store,
@@ -305,7 +311,8 @@
         var date_array = this._getDateArray(this.iteration_start, this.iteration_end);
         var start_iso = Rally.util.DateTime.toIsoString(date_array[0],true).replace(/T.*$/,"");
         window.console && console.log( "Set Ideal for First Day:",start_iso);
-        var ideal_top = this.task_days[start_iso].get('TaskRemainingTotal');
+        //var ideal_top = this.task_days[start_iso].get('TaskRemainingTotal');
+        var ideal_top = this._getHighEstimate(this.task_days);
         var ideal_drop = ideal_top/(this.number_of_days_in_iteration-1);
         var ideal_drop_percent = 100/(this.number_of_days_in_iteration-1);
         
@@ -317,7 +324,9 @@
                 this.task_days[day].set('IdealTaskRemainingTotal',daily_ideal);
                 this.task_days[day].set('IdealTaskRemainingPercent',daily_ideal_percent);
                 daily_ideal = daily_ideal - ideal_drop;
+                if ( daily_ideal < 0 ) { daily_ideal = 0; }
                 daily_ideal_percent = daily_ideal_percent - ideal_drop_percent;
+                if ( daily_ideal_percent < 0 ) { daily_ideal_percent = 0; }
             }
         }
     },
@@ -338,6 +347,30 @@
 
         return the_array;
     },
+    _getHighEstimate: function(team_summary) {
+        window.console && console.log("_getHighEstimate",team_summary);
+        var high_estimate = 0;
+        var counter = 0;
+        var check_limit = 2;
+        for ( var day in team_summary ) {
+            if ( counter < check_limit ) {
+                var day_estimate = team_summary[day].get('TaskEstimateTotal');
+                window.console && console.log("Day",counter,"limit",check_limit,"Estimate",day_estimate);
+                if ( day_estimate > high_estimate ) {
+                    high_estimate = day_estimate;
+                }
+                counter++;
+            }
+        };
+        return high_estimate;
+    },
+    _initializeTeamToNull: function(team_name) {
+        for ( var midnight in this.task_days ) {
+            if ( this.task_days.hasOwnProperty(midnight) ) {
+                this.task_days[midnight].set(team_name,null);
+            }
+        }
+    },
     _normalizeTeamData: function() {
         window.console && console.log("_normalizeTeamData",this.task_days);
         var me = this;
@@ -348,10 +381,12 @@
         for ( var team_id in this.team_data ) {
             if ( this.team_data.hasOwnProperty(team_id) ) {
                 var team_name = this.team_names[team_id];
+                window.console && console.log("TEAM:",team_name);
+                this._initializeTeamToNull(team_name);
                 var data_array = this._hashToArray(this.team_data[team_id]);
-                if ( data_array.length > 0 &&  this.team_data[team_id][start_iso]) {
-                    var team_top = this.team_data[team_id][start_iso].get('TaskRemainingTotal');
-                    
+                if ( data_array.length > 0 ) {
+                    var team_top = this._getHighEstimate(this.team_data[team_id]);
+                    window.console && console.log( "Team High:",team_top);
                     Ext.Array.each( data_array, function(team_one_day){
                         var midnight = team_one_day.ShortIsoDate;
                         var percentage = ( parseInt( 1000 * team_one_day.TaskRemainingTotal/team_top ) / 10 );

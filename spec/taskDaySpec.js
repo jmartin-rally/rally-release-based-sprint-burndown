@@ -11,6 +11,7 @@ describe("Task Day Model Tests", function(){
         expect(model.get('ShortIsoDate')).toEqual(today_iso_string);
         expect(model.get('TaskRemainingTotal')).toEqual(0);
         expect(model.get('IdealTaskRemainingTotal')).toEqual(0);
+        expect(model.get('TaskEstimateTotal')).toEqual(0);
     });
     
     it("should return an iso date string when given an iso date string", function(){
@@ -35,6 +36,12 @@ describe("Task Day Model Tests", function(){
         var model = Ext.create('Rally.pxs.data.TaskDay',{ 'TaskRemainingTotal': 5 });
         model.addTo("TaskRemainingTotal",7);
         expect(model.get('TaskRemainingTotal')).toEqual(12);
+    });
+        
+    it("should add to the taskestimatetotal", function(){
+        var model = Ext.create('Rally.pxs.data.TaskDay',{ 'TaskRemainingTotal': 5 });
+        model.addTo("TaskEstimateTotal",7);
+        expect(model.get('TaskEstimateTotal')).toEqual(7);
     });
     
     it("should calculate a difference from ideal when ideal is above actual total", function() {
