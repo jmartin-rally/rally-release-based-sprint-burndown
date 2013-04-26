@@ -10,7 +10,7 @@
  Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    version: "0.6",
+    version: "0.7",
     show_teams: true,
     hide_weekends: true,
     defaults: { margin: 5 },
@@ -242,7 +242,7 @@
         });
         if(this.chart){ this.chart.destroy(); }
         var series = [];
-        series.push({type: 'line', dataIndex: 'IdealTaskRemainingPercent', name: 'Work Required', visible: true});
+        series.push({type: 'line', dataIndex: 'IdealTaskRemainingPercent', name: 'Work Required (hours)', visible: true});
         for ( var team_id in this.team_names ) {
             if ( this.team_names.hasOwnProperty(team_id) ){
                 series.push({type: 'line', dataIndex: this.team_names[team_id], name: this.team_names[team_id], visible: true});
@@ -293,7 +293,7 @@
                 {type: 'column',dataIndex:'IdealTaskRemainingDelta',name:'Remaining to Required', visible: true, dataLabels:{
                     enabled: true
                 }},
-                {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
+                {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required (hours)', visible: true},
                 {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
             ],
             chartConfig: {
