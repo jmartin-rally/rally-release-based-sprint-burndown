@@ -12,6 +12,7 @@
     componentCls: 'app',
     version: "0.6",
     show_teams: true,
+    hide_weekends: true,
     defaults: { margin: 5 },
     items: [ 
         {xtype: 'container', itemId: 'selector_box', layout: { type: 'hbox' } },
@@ -95,11 +96,17 @@
         window.console && console.log("_getDateArray",start_date,end_date);
         var date_array = [];
         var almost_midnight = Rally.util.DateTime.add(start_date,"minute",1435);
+        var counter = 1;
         while( almost_midnight < end_date ) {
-            if ( use_short_form ) {
-                date_array.push(Rally.util.DateTime.format(almost_midnight,'d M'));
-            } else {
-                date_array.push(almost_midnight);
+            window.console && console.log("almost midnight", almost_midnight);
+            if ( ! this.hide_weekends || ( almost_midnight.getDay() !== 0 && almost_midnight.getDay() !== 6 )) {
+                if ( use_short_form ) {
+                    //date_array.push(Rally.util.DateTime.format(almost_midnight,'d M'));
+                    date_array.push("Day " + counter);
+                    counter++;
+                } else {
+                    date_array.push(almost_midnight);
+                }
             }
             almost_midnight = Rally.util.DateTime.add(almost_midnight,"day",1);
         }
@@ -287,8 +294,7 @@
                     enabled: true
                 }},
                 {type: 'line', dataIndex: 'IdealTaskRemainingTotal', name: 'Work Required', visible: true},
-                {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true},
-                {type: 'column',dataIndex: 'fred',name:'Fred',visible:true}
+                {type: 'line', dataIndex: 'TaskRemainingTotal', name: 'Work Remaining', visible: true}
             ],
             chartConfig: {
                 chart: {},
